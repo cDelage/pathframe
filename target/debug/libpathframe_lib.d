@@ -1,0 +1,1 @@
+C:\workspace_pathframe\pathframe\target\debug\libpathframe_lib.rlib: C:\workspace_pathframe\pathframe\pathframe_lib\src\lib.rs C:\workspace_pathframe\pathframe\pathframe_lib\src\workspace\application_prototype.rs C:\workspace_pathframe\pathframe\pathframe_lib\src\workspace.rs

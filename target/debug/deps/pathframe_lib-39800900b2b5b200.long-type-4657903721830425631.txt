@@ -1,0 +1,1 @@
+iter::adapters::map::Map<core::slice::iter::Iter<'_, ApplicationPrototypeIndex>, {closure@pathframe_lib\src\workspace\application_prototype.rs:42:70: 42:77}>

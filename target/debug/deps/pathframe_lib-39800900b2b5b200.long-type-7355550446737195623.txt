@@ -1,0 +1,1 @@
+iter::adapters::map::Map<vec::into_iter::IntoIter<ApplicationPrototypeIndex>, {closure@pathframe_lib\src\workspace\application_prototype.rs:42:75: 42:82}>

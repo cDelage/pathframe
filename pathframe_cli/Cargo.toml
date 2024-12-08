@@ -1,0 +1,8 @@
+[package]
+name = "pathframe_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pathframe_lib = {path = "../pathframe_lib"}
+serde = { version = "1.0", features = ["derive"] }
