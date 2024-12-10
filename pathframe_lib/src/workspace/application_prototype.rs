@@ -7,11 +7,11 @@ use crate::workspace::{
     APPLICATION_PROTOTYPE_INDEX_PATH,
 };
 
+use super::{compute_file_path, concat_path, generate_uuid, save_to_yaml_file, MODULES_PATH};
+
 pub fn find_all_application_prototypes(
     workspace_path: &str,
 ) -> Result<Vec<ApplicationPrototypeIndex>> {
-    println!("Find all application prototypes");
-    //let mut directories: Vec<> = Vec::new();
     let folder_path = Path::join(
         Path::new(workspace_path),
         Path::new(APPLICATION_PROTOTYPES_PATH),
@@ -27,6 +27,36 @@ pub fn find_all_application_prototypes(
                 .ok()
         })
         .collect::<Vec<ApplicationPrototypeIndex>>())
+}
+
+pub fn create_application_prototype(
+    workspace_path: &str,
+    application_name: &str,
+    description: Option<String>,
+) -> Result<String> {
+    let folder_pathbuf = concat_path(workspace_path, APPLICATION_PROTOTYPES_PATH);
+
+    let application_path = compute_file_path(&folder_pathbuf, application_name);
+
+    fs::create_dir(&application_path)?;
+
+    let id = generate_uuid();
+
+    let application_prototype = ApplicationPrototypeIndex {
+        application_id: id.clone(),
+        application_name: String::from(application_name),
+        description,
+        design_system_id: None,
+    };
+
+    let application_index_path = &application_path.join(APPLICATION_PROTOTYPE_INDEX_PATH);
+    save_to_yaml_file(application_index_path, &application_prototype)?;
+    
+    let modules_path = &application_path.join(MODULES_PATH);
+
+    fs::create_dir(modules_path)?;
+
+    Ok(id)
 }
 
 #[cfg(test)]
