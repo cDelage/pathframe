@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
-use serde::de::DeserializeOwned;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_yaml;
 use uuid::Uuid;
 use std::fs::DirEntry;
@@ -12,57 +11,7 @@ use std::io::Write;
 
 pub mod application_prototype;
 
-const APPLICATION_PROTOTYPES_PATH: &str = "application_prototypes";
-const MODULES_PATH: &str = "modules";
-const APPLICATION_PROTOTYPE_INDEX_PATH: &str = "application_index.yaml";
-
-/// Metadata of Application prototype.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApplicationPrototypeIndex {
-    pub application_id: String,
-    pub application_name: String,
-    pub description: Option<String>,
-    pub design_system_id: Option<String>,
-}
-
-/// Vérifie si un `DirEntry` est un dossier.
-///
-/// # Arguments
-///
-/// * `dir_entry` - Une référence à un `DirEntry` représentant une entrée de dossier.
-///
-/// # Returns
-///
-/// * `true` si l'entrée est un dossier, sinon `false`.
-fn is_folder(dir_entry: &Result<DirEntry, std::io::Error>) -> bool {
-    match dir_entry {
-        Ok(result) => result.path().is_dir(),
-        Err(_) => false,
-    }
-}
-
-/// Checks if a file with a given name exists in the path corresponding to a directory entry.
-///
-/// # Arguments
-///
-/// * `dir_entry` - A reference to a result containing a directory entry (`DirEntry`) or an error (`std::io::Error`).
-///     - If it is an error (`Err`), the function returns `false`.
-///     - If it is a valid entry (`Ok`), the function checks if a file with the specified name exists in the directory.
-/// * `filename` - A string representing the name of the file to search for.
-///
-/// # Returns
-///
-/// * `true` if a file with the specified name exists in the directory corresponding to the provided entry.
-/// * `false` if the entry is an error or if the file does not exist.
-///
-fn is_file_exist(dir_entry: &Result<DirEntry, std::io::Error>, filename: &str) -> bool {
-    match dir_entry {
-        Ok(result) => result.path().join(filename).is_file(),
-        Err(_) => false,
-    }
-}
-
-/// Loads a YAML file from a given directory iterator and deserializes it into a generic type `T`.
+ /// Loads a YAML file from a given directory iterator and deserializes it into a generic type `T`.
 ///
 /// # Arguments
 ///
@@ -80,25 +29,26 @@ fn is_file_exist(dir_entry: &Result<DirEntry, std::io::Error>, filename: &str) -
 /// - If the directory cannot be read.
 /// - If the file with the specified name is not found in the directory.
 /// - If the file cannot be opened, read, or deserialized.
-fn load_yaml<T>(dir_entry: Result<DirEntry, std::io::Error>, filename: &str) -> Result<T>
+fn load_yaml<T>(dir_entry: &DirEntry, filename: &str) -> Result<T>
 where
     T: DeserializeOwned,
 {
-    let dir = dir_entry?;
+    let path = dir_entry.path().join(filename);
 
-    let mut file = File::open(dir.path().join(filename))
-        .context(format!("Failed to open file '{}'", dir.path().display()))?;
+    let mut file = File::open(&path)
+        .context(format!("Failed to open file '{}'", path.display()))?;
 
     let mut contents = String::new();
     file.read_to_string(&mut contents).context(format!(
         "Failed to read file '{}'",
-        dir.path().join(filename).display()
+        path.display()
     ))?;
 
     let data: T = serde_yaml::from_str(&contents).context("Failed to deserialize YAML")?;
 
     Ok(data)
 }
+
 
 /// Computes a unique file path in the specified directory.
 ///
@@ -133,12 +83,15 @@ fn generate_uuid() -> String{
     Uuid::new_v4().to_string()
 }
 
-fn save_to_yaml_file<P: AsRef<Path>>(path: P, data: &ApplicationPrototypeIndex) -> std::io::Result<()> {
+fn save_to_yaml_file<P, T>(path: P, data: &T) -> Result<()>
+where
+    P: AsRef<Path>,
+    T: Serialize,
+{
     let yaml_data = serde_yaml::to_string(data)
         .expect("Échec de la sérialisation en YAML");
 
     let mut file = File::create(path)?;
-    
     file.write_all(yaml_data.as_bytes())?;
     Ok(())
 }
@@ -148,4 +101,9 @@ fn concat_path(left: &str, right: &str) -> PathBuf {
         Path::new(left),
         Path::new(right),
     )
+}
+
+fn is_kebab_case(input: &str) -> bool {
+    let kebab_case_pattern = regex::Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap();
+    kebab_case_pattern.is_match(input)
 }

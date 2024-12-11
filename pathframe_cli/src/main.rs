@@ -1,12 +1,13 @@
 use args::{ApplicationPrototypeSubCommands, EntityCommands, PathframeArgs};
 use clap::Parser;
 
-use pathframe_lib::workspace::application_prototype;
+use colored::*;
+use pathframe_lib::workspace::application_prototype::{self, ApplicationPrototypeIndex};
 use std::error::Error;
 
 mod args;
 
-fn main() -> Result<(), Box<dyn Error>>{
+fn main() -> Result<(), Box<dyn Error>> {
     let args = PathframeArgs::parse();
 
     // Match sur les différentes commandes et arguments
@@ -17,16 +18,68 @@ fn main() -> Result<(), Box<dyn Error>>{
             match subcommand.command {
                 // Cas de la sous-commande List
                 ApplicationPrototypeSubCommands::List => {
-                    let application_prototypes = application_prototype::find_all_application_prototypes(workspace)?;
-                    
+                    let application_prototypes: Vec<ApplicationPrototypeIndex> =
+                        application_prototype::find_all_application_prototypes(workspace)?;
+
                     application_prototypes.iter().for_each(|application| {
-                        println!("{}", application.application_name);
+                        let app_name = &application.application_name.bright_white();
+                        let app_path = &application
+                            .application_path
+                            .as_ref()
+                            .unwrap_or(&String::from("UNKNOWN_PATH"))
+                            .truecolor(128, 128, 128);
+                        println!("{} - {}", app_name, app_path);
                     });
-                    
-                },
+                }
                 ApplicationPrototypeSubCommands::CreateApplication(payload) => {
-                    let app_proto_id = application_prototype::create_application_prototype(&workspace, &payload.application_name, None)?;   
+                    let app_proto_id: String = application_prototype::create_application_prototype(
+                        &workspace,
+                        &payload.application_name,
+                        None,
+                    )?;
                     println!("Application successfully created (ID:{})", app_proto_id);
+                }
+                ApplicationPrototypeSubCommands::FindById(payload) => {
+                    let application =
+                        application_prototype::find_application_by_id(&workspace, &payload.id)?;
+
+                    println!(
+                        "Application : {}",
+                        application.application_prototype_index.application_name
+                    )
+                }
+                ApplicationPrototypeSubCommands::CreateModule(payload) => {
+                    let application = application_prototype::find_application_by_id(
+                        &workspace,
+                        &payload.application_id,
+                    )?;
+
+                    let module_id = application_prototype::create_module(
+                        &application
+                            .application_prototype_index
+                            .application_path
+                            .unwrap(),
+                        &payload.module_name,
+                    )?;
+
+                    println!("Success to create module (Module ID : {}", module_id);
+                }
+                ApplicationPrototypeSubCommands::ListModules(payload) => {
+                    let application = application_prototype::find_application_by_id(
+                        &workspace,
+                        &payload.application_id,
+                    )?;
+                    let modules = application_prototype::find_modules_by_application(&application.application_prototype_index.application_path.unwrap()).unwrap_or(vec![]);
+                    modules.into_iter().for_each(|module| {
+                        let module_name = &module.module_index.module_name.value().bright_white();
+                        let module_path = &module
+                            .module_index
+                            .module_path
+                            .as_ref()
+                            .unwrap_or(&String::from("UNKNOWN_PATH"))
+                            .truecolor(128, 128, 128);
+                        println!("{} - {}", module_name, module_path);
+                    });
                 }
             }
         }

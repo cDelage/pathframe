@@ -27,12 +27,35 @@ pub enum ApplicationPrototypeSubCommands {
     ///Find all application prototypes into workspace
     List,
     #[command(aliases=["create"])]
-    CreateApplication(CreateApplicationArgs)
+    CreateApplication(CreateApplicationArgs),
+    FindById(FindApplicationByIdArgs),
+    CreateModule(CreateModuleArgs),
+    ListModules(ListModulesArgs)
 }
-
 
 #[derive(Debug, Parser)]
 pub struct CreateApplicationArgs {
     #[arg(aliases=["name"])]
     pub application_name: String
 }
+
+#[derive(Debug, Parser)]
+pub struct FindApplicationByIdArgs {
+    pub id: String
+}
+
+#[derive(Debug, Parser)]
+pub struct CreateModuleArgs {
+    #[arg(aliases=["app-id"])]
+    pub application_id: String,
+    
+    #[arg(aliases=["mod-name","name"])]
+    pub module_name: String,
+}
+
+#[derive(Debug, Parser)]
+pub struct ListModulesArgs {
+    #[arg(aliases=["app-id"])]
+    pub application_id: String,
+}
+
