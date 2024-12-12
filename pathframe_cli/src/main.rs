@@ -69,7 +69,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         &workspace,
                         &payload.application_id,
                     )?;
-                    let modules = application_prototype::find_modules_by_application(&application.application_prototype_index.application_path.unwrap()).unwrap_or(vec![]);
+                    let modules = application_prototype::find_modules_by_application(
+                        &application
+                            .application_prototype_index
+                            .application_path
+                            .unwrap(),
+                    )
+                    .unwrap_or(vec![]);
                     modules.into_iter().for_each(|module| {
                         let module_name = &module.module_index.module_name.value().bright_white();
                         let module_path = &module
@@ -79,6 +85,66 @@ fn main() -> Result<(), Box<dyn Error>> {
                             .unwrap_or(&String::from("UNKNOWN_PATH"))
                             .truecolor(128, 128, 128);
                         println!("{} - {}", module_name, module_path);
+                    });
+                }
+                ApplicationPrototypeSubCommands::CreatePage(payload) => {
+                    let application = application_prototype::find_application_by_id(
+                        &workspace,
+                        &payload.application_id,
+                    )?;
+
+                    let module = application_prototype::find_module_by_id(
+                        &application
+                            .application_prototype_index
+                            .application_path
+                            .unwrap(),
+                        &payload.module_id,
+                    )?;
+
+                    let page_id = application_prototype::create_page(
+                        &module.module_index.module_path.unwrap(),
+                        &payload.page_name,
+                    )?;
+
+                    println!("Page created (Page id : {})", page_id);
+                }
+                ApplicationPrototypeSubCommands::CreateComponent(payload) => {
+                    let application = application_prototype::find_application_by_id(
+                        &workspace,
+                        &payload.application_id,
+                    )?;
+
+                    let component_id = application_prototype::create_component(
+                        &application
+                            .application_prototype_index
+                            .application_path
+                            .unwrap(),
+                        &payload.component_name,
+                    )?;
+
+                    println!("Component created (Component id : {})", component_id);
+                }
+                ApplicationPrototypeSubCommands::ListComponent(payload) => {
+                    let application = application_prototype::find_application_by_id(
+                        &workspace,
+                        &payload.application_id,
+                    )?;
+
+                    let components = application_prototype::find_components_by_application(
+                        &application
+                            .application_prototype_index
+                            .application_path
+                            .unwrap(),
+                    )?;
+
+                    components.iter().for_each(|component| {
+                        let component_name = &component.component_name.value().bright_white();
+                        let component_path = &component
+                            .component_path
+                            .as_ref()
+                            .unwrap_or(&String::from("UNKNOWN_PATH"))
+                            .truecolor(128, 128, 128);
+                        println!("{} - {}", component_name, component_path);
                     });
                 }
             }
