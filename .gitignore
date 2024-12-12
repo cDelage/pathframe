@@ -1,3 +1,4 @@
 pathframe_cli/target/
 pathframe_lib/target/
 /target
+/pathframe_lib/tests/assets/
