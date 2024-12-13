@@ -1,3 +1,5 @@
 
-pub mod workspace;
 
+pub mod domain;
+
+pub mod application;

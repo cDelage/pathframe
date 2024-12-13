@@ -1,8 +1,9 @@
+use crate::domain::workspace_domain::application_prototype_domain::{ApplicationPrototype, ApplicationPrototypeIndex, ComponentIndex, Module, ModuleIndex, PageIndex, SelectorName};
+
 use super::{
-    compute_file_path, concat_path, generate_uuid, is_kebab_case, load_yaml, save_to_yaml_file,
+    compute_file_path, concat_path, generate_uuid, load_yaml, save_to_yaml_file,
 };
 use anyhow::{anyhow, Ok, Result};
-use serde_derive::{Deserialize, Serialize};
 use std::fs::File;
 use std::fs::{self, ReadDir};
 use std::io::Write;
@@ -24,88 +25,11 @@ const PRESET_LAYOUT_TEMPLATE: &str = "<body></body>";
 const PRESET_PAGE_TEMPLATE: &str = "<main></main>";
 const PRESET_COMPONENT_TEMPLATE: &str = "<div></div>";
 
-/// Metadata of Application prototype.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApplicationPrototypeIndex {
-    pub application_id: String,
-    pub application_name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub design_system_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub application_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-
-pub struct Frame {
-    pub template: String,
-    pub dataset: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-
-pub struct ComponentIndex {
-    pub component_id: String,
-    pub component_name: SelectorName,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub component_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-
-pub struct ModuleIndex {
-    pub module_id: String,
-    pub module_name: SelectorName,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub module_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Module {
-    pub module_index: ModuleIndex,
-    pub pages: Vec<PageIndex>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PageIndex {
-    pub page_id: String,
-    pub page_name: SelectorName,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SelectorName(String);
-
-impl SelectorName {
-    pub fn parse(name: String) -> Result<SelectorName> {
-        if is_kebab_case(&name) {
-            return Ok(SelectorName(name));
-        }
-        Err(anyhow!(
-            "Fail to parse selector name in snake case: {}",
-            name
-        ))
-    }
-
-    pub fn value(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApplicationPrototype {
-    pub application_prototype_index: ApplicationPrototypeIndex,
-    pub components: Vec<ComponentIndex>,
-    pub modules: Vec<Module>,
-}
 
 pub fn find_all_application_prototypes(
     workspace_path: &str,
 ) -> Result<Vec<ApplicationPrototypeIndex>> {
-    let folder_path = concat_path(workspace_path, APPLICATION_PROTOTYPES_PATH);
+    let folder_path: PathBuf = concat_path(workspace_path, APPLICATION_PROTOTYPES_PATH);
     let read_dir: ReadDir = fs::read_dir(&folder_path)?;
 
     Ok(read_dir

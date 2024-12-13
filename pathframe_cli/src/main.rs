@@ -2,7 +2,7 @@ use args::{ApplicationPrototypeSubCommands, EntityCommands, PathframeArgs};
 use clap::Parser;
 
 use colored::*;
-use pathframe_lib::workspace::application_prototype::{self, ApplicationPrototypeIndex};
+use pathframe_lib::{application::workspace::application_prototype, domain::workspace_domain::application_prototype_domain::ApplicationPrototypeIndex};
 use std::error::Error;
 
 mod args;

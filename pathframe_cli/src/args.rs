@@ -16,6 +16,22 @@ pub enum EntityCommands {
     ApplicationPrototype(ApplicationPrototypeCommands),
 }
 
+
+
+#[derive(Debug, Args)]
+pub struct DesignSystemCommands {
+    #[clap(subcommand)]
+    pub command: ApplicationPrototypeSubCommands,
+}
+
+#[derive(Debug, Subcommand)]
+
+pub enum DesignSystemSubCommands {
+    List,
+    FindById
+}
+
+
 #[derive(Debug, Args)]
 pub struct ApplicationPrototypeCommands {
     #[clap(subcommand)]
