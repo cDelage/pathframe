@@ -2,7 +2,7 @@ use args::{ApplicationPrototypeSubCommands, EntityCommands, PathframeArgs};
 use clap::Parser;
 
 use colored::*;
-use pathframe_lib::{application::workspace::application_prototype, domain::workspace_domain::application_prototype_domain::ApplicationPrototypeIndex};
+use pathframe_lib::{application::workspace_service::application_prototype_service, domain::workspace_domain::application_prototype_domain::ApplicationPrototypeMetadata};
 use std::error::Error;
 
 mod args;
@@ -18,8 +18,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             match subcommand.command {
                 // Cas de la sous-commande List
                 ApplicationPrototypeSubCommands::List => {
-                    let application_prototypes: Vec<ApplicationPrototypeIndex> =
-                        application_prototype::find_all_application_prototypes(workspace)?;
+                    let application_prototypes: Vec<ApplicationPrototypeMetadata> =
+                        application_prototype_service::find_all_application_prototypes(workspace)?;
 
                     application_prototypes.iter().for_each(|application| {
                         let app_name = &application.application_name.bright_white();
@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     });
                 }
                 ApplicationPrototypeSubCommands::CreateApplication(payload) => {
-                    let app_proto_id: String = application_prototype::create_application_prototype(
+                    let app_proto_id: String = application_prototype_service::create_application_prototype(
                         &workspace,
                         &payload.application_name,
                         None,
@@ -41,22 +41,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 ApplicationPrototypeSubCommands::FindById(payload) => {
                     let application =
-                        application_prototype::find_application_by_id(&workspace, &payload.id)?;
+                        application_prototype_service::find_application_by_id(&workspace, &payload.id)?;
 
                     println!(
                         "Application : {}",
-                        application.application_prototype_index.application_name
+                        application.application_prototype_metadata.application_name
                     )
                 }
                 ApplicationPrototypeSubCommands::CreateModule(payload) => {
-                    let application = application_prototype::find_application_by_id(
+                    let application = application_prototype_service::find_application_by_id(
                         &workspace,
                         &payload.application_id,
                     )?;
 
-                    let module_id = application_prototype::create_module(
+                    let module_id = application_prototype_service::create_module(
                         &application
-                            .application_prototype_index
+                            .application_prototype_metadata
                             .application_path
                             .unwrap(),
                         &payload.module_name,
@@ -65,13 +65,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!("Success to create module (Module ID : {}", module_id);
                 }
                 ApplicationPrototypeSubCommands::ListModules(payload) => {
-                    let application = application_prototype::find_application_by_id(
+                    let application = application_prototype_service::find_application_by_id(
                         &workspace,
                         &payload.application_id,
                     )?;
-                    let modules = application_prototype::find_modules_by_application(
+                    let modules = application_prototype_service::find_modules_by_application(
                         &application
-                            .application_prototype_index
+                            .application_prototype_metadata
                             .application_path
                             .unwrap(),
                     )
@@ -88,35 +88,35 @@ fn main() -> Result<(), Box<dyn Error>> {
                     });
                 }
                 ApplicationPrototypeSubCommands::CreatePage(payload) => {
-                    let application = application_prototype::find_application_by_id(
+                    let application = application_prototype_service::find_application_by_id(
                         &workspace,
                         &payload.application_id,
                     )?;
 
-                    let module = application_prototype::find_module_by_id(
+                    let module = application_prototype_service::find_module_by_id(
                         &application
-                            .application_prototype_index
+                            .application_prototype_metadata
                             .application_path
                             .unwrap(),
                         &payload.module_id,
                     )?;
 
-                    let page_id = application_prototype::create_page(
-                        &module.module_index.module_path.unwrap(),
+                    let page_id = application_prototype_service::create_page(
+                        &module.module_metadata.module_path.unwrap(),
                         &payload.page_name,
                     )?;
 
                     println!("Page created (Page id : {})", page_id);
                 }
                 ApplicationPrototypeSubCommands::CreateComponent(payload) => {
-                    let application = application_prototype::find_application_by_id(
+                    let application = application_prototype_service::find_application_by_id(
                         &workspace,
                         &payload.application_id,
                     )?;
 
-                    let component_id = application_prototype::create_component(
+                    let component_id = application_prototype_service::create_component(
                         &application
-                            .application_prototype_index
+                            .application_prototype_metadata
                             .application_path
                             .unwrap(),
                         &payload.component_name,
@@ -125,14 +125,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!("Component created (Component id : {})", component_id);
                 }
                 ApplicationPrototypeSubCommands::ListComponent(payload) => {
-                    let application = application_prototype::find_application_by_id(
+                    let application = application_prototype_service::find_application_by_id(
                         &workspace,
                         &payload.application_id,
                     )?;
 
-                    let components = application_prototype::find_components_by_application(
+                    let components = application_prototype_service::find_components_by_application(
                         &application
-                            .application_prototype_index
+                            .application_prototype_metadata
                             .application_path
                             .unwrap(),
                     )?;

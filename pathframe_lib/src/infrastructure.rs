@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_yaml;
 use serde_json;
-use uuid::Uuid;
 use std::fs::DirEntry;
 use std::fs::File;
 use std::io::Read;
@@ -10,48 +9,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::io::Write;
 
-pub mod application_prototype;
-
-pub mod design_system;
-
- /// Loads a YAML file from a given directory iterator and deserializes it into a generic type `T`.
-///
-/// # Arguments
-///
-/// * `read_dir_result` - A `Result<ReadDir, std::io::Error>` containing the directory iterator or an error.
-/// * `filename` - The name of the YAML file to load.
-///
-/// # Returns
-///
-/// Returns an instance of type `T` if the file is found and deserialized successfully,
-/// or an error if the file is not found or deserialization fails.
-///
-/// # Errors
-///
-/// This function will return an error in the following cases:
-/// - If the directory cannot be read.
-/// - If the file with the specified name is not found in the directory.
-/// - If the file cannot be opened, read, or deserialized.
-fn load_yaml<T>(dir_entry: &DirEntry, filename: &str) -> Result<T>
-where
-    T: DeserializeOwned,
-{
-    let path = dir_entry.path().join(filename);
-
-    let mut file = File::open(&path)
-        .context(format!("Failed to open file '{}'", path.display()))?;
-
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).context(format!(
-        "Failed to read file '{}'",
-        path.display()
-    ))?;
-
-    let data: T = serde_yaml::from_str(&contents).context("Failed to deserialize YAML")?;
-
-    Ok(data)
-}
-
+pub mod workspace_repository;
 /// Loads a JSON file from a given directory entry and deserializes it into a generic type `T`.
 ///
 /// # Arguments
@@ -119,10 +77,6 @@ pub fn compute_file_path(directory: &PathBuf, filename: &str) -> PathBuf {
     file_path
 }
 
-fn generate_uuid() -> String{
-    Uuid::new_v4().to_string()
-}
-
 fn save_to_yaml_file<P, T>(path: P, data: &T) -> Result<()>
 where
     P: AsRef<Path>,
@@ -146,4 +100,42 @@ fn concat_path(left: &str, right: &str) -> PathBuf {
 pub fn is_kebab_case(input: &str) -> bool {
     let kebab_case_pattern = regex::Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap();
     kebab_case_pattern.is_match(input)
+}
+
+/// Loads a YAML file from a given directory iterator and deserializes it into a generic type `T`.
+///
+/// # Arguments
+///
+/// * `read_dir_result` - A `Result<ReadDir, std::io::Error>` containing the directory iterator or an error.
+/// * `filename` - The name of the YAML file to load.
+///
+/// # Returns
+///
+/// Returns an instance of type `T` if the file is found and deserialized successfully,
+/// or an error if the file is not found or deserialization fails.
+///
+/// # Errors
+///
+/// This function will return an error in the following cases:
+/// - If the directory cannot be read.
+/// - If the file with the specified name is not found in the directory.
+/// - If the file cannot be opened, read, or deserialized.
+fn load_yaml<T>(dir_entry: &DirEntry, filename: &str) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    let path = dir_entry.path().join(filename);
+
+    let mut file = File::open(&path)
+        .context(format!("Failed to open file '{}'", path.display()))?;
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).context(format!(
+        "Failed to read file '{}'",
+        path.display()
+    ))?;
+
+    let data: T = serde_yaml::from_str(&contents).context("Failed to deserialize YAML")?;
+
+    Ok(data)
 }

@@ -1,4 +1,2 @@
 
-pub mod workspace;
-
-pub mod frame_compiler;
+pub mod workspace_service;
