@@ -11,23 +11,26 @@ pub struct DesignSystem {
     pub primitives: Primitives,
     pub tokens: Tokens,
     #[serde(skip_deserializing)]
-    pub design_system_path: Option<String>,
+    pub design_system_path: String,
 }
 
-//Primitives 
-
+//Primitives
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Primitives {
     pub color_palettes: Vec<ColorPalette>,
-    pub single_colors: HashMap<String, String>,
+    pub single_colors: SingleColors,
     pub space: SpacePalette,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SpacePalette(HashMap<String,String>);
+
+pub struct SingleColors(pub HashMap<String, String>);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpacePalette(pub HashMap<String, String>);
 
 impl SpacePalette {
-    pub fn parse(spaces : HashMap<String,String>) -> Result<SpacePalette> {
+    pub fn parse(spaces: HashMap<String, String>) -> Result<SpacePalette> {
         Ok(SpacePalette(spaces))
     }
 }
@@ -35,9 +38,11 @@ impl SpacePalette {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorPalette {
     pub palette_name: String,
-    pub shades: HashMap<String, String>,
+    pub shades: Shades,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Shades(pub HashMap<String, String>);
 
 //Tokens
 
@@ -52,7 +57,6 @@ pub struct Tokens {
     pub shadows: Vec<Effect>,
     pub space_tokens: SpaceTokens,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseColorTokens {
@@ -84,9 +88,12 @@ pub struct ColorSet {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorState {
     pub bg: String,
-    pub border: String,
+    pub border: BorderColor,
     pub text: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BorderColor(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextTokens {
@@ -111,14 +118,20 @@ pub struct TextTheme {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum EffectType {
+    Shadow,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Effect {
     pub effect_name: String,
     pub light: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dark: Option<String>,
+    pub effect_type: EffectType,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
+
 pub struct RadiusTokens {
     pub default: String,
     pub large: String,

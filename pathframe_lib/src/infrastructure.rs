@@ -139,3 +139,39 @@ where
 
     Ok(data)
 }
+
+/// Loads a YAML file from a given directory iterator and deserializes it into a generic type `T`.
+///
+/// # Arguments
+///
+/// * `read_dir_result` - A `Result<ReadDir, std::io::Error>` containing the directory iterator or an error.
+/// * `filename` - The name of the YAML file to load.
+///
+/// # Returns
+///
+/// Returns an instance of type `T` if the file is found and deserialized successfully,
+/// or an error if the file is not found or deserialization fails.
+///
+/// # Errors
+///
+/// This function will return an error in the following cases:
+/// - If the directory cannot be read.
+/// - If the file with the specified name is not found in the directory.
+/// - If the file cannot be opened, read, or deserialized.
+fn load_yaml_from_pathbuf<T>(pathbuf: &PathBuf) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    let mut file = File::open(&pathbuf)
+        .context(format!("Failed to open file '{}'", pathbuf.display()))?;
+
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).context(format!(
+        "Failed to read file '{}'",
+        pathbuf.display()
+    ))?;
+
+    let data: T = serde_yaml::from_str(&contents).context("Failed to deserialize YAML")?;
+
+    Ok(data)
+}

@@ -8,10 +8,6 @@ use crate::utils::generate_uuid;
 
 use anyhow::{anyhow, Ok, Result};
 
-const PRESET_LAYOUT_TEMPLATE: &str = "<body></body>";
-const PRESET_PAGE_TEMPLATE: &str = "<main></main>";
-const PRESET_COMPONENT_TEMPLATE: &str = "<div></div>";
-
 pub fn find_all_application_prototypes(
     workspace: &Workspace,
 ) -> Result<Vec<ApplicationPrototypeMetadata>> {
@@ -134,12 +130,11 @@ pub fn create_page(module_metadata: &ModuleMetadata, page_name: &str) -> Result<
         page_path: String::new(),
     };
 
-    application_prototype_repository::create_page_metadata(&module_metadata, &mut page_metadata);
+    application_prototype_repository::create_page_metadata(&module_metadata, &mut page_metadata)?;
     
     let mut frame: Frame = Frame::from(FrameType::Layout);
 
-    application_prototype_repository::create_page_frame(&page_metadata, &mut frame);
+    application_prototype_repository::create_page_frame(&page_metadata, &mut frame)?;
 
     Ok(page_metadata)
 }
-

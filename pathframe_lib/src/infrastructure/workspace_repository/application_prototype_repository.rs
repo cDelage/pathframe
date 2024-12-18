@@ -11,13 +11,14 @@ use std::{
     path::PathBuf,
 };
 
+use super::APPLICATION_PROTOTYPES_PATH;
+
 const APPLICATION_PROTOTYPE_METADATA_PATH: &str = "application_metadata.yaml";
 const MODULE_METADATA_PATH: &str = "module_metadata.yaml";
 const PAGE_METADATA_PATH: &str = "page_metadata.yaml";
 const COMPONENT_METADATA_PATH: &str = "component_metadata.yaml";
 const FRAME_TEMPLATE_PATH: &str = "template.html";
 const FRAME_DATASET_PATH: &str = "dataset.yaml";
-const APPLICATION_PROTOTYPES_PATH: &str = "application_prototypes";
 const MODULES_PATH: &str = "modules";
 const PAGES_PATH: &str = "pages";
 const IMAGES_PATH: &str = "images";
@@ -61,24 +62,27 @@ pub fn create_application_repository(
     workspace: &Workspace,
     application_prototype_metadata: &mut ApplicationPrototypeMetadata,
 ) -> Result<()> {
-    let folder_pathbuf = concat_path(&workspace.workspace_path, APPLICATION_PROTOTYPES_PATH);
-    let application_path =
+    let folder_pathbuf: PathBuf = concat_path(&workspace.workspace_path, APPLICATION_PROTOTYPES_PATH);
+    let application_path: PathBuf =
         compute_file_path(&folder_pathbuf, &application_prototype_metadata.application_name);
-    application_prototype_metadata.application_path = application_path.to_string_lossy().into_owned();
-    let modules_path = application_path.join(MODULES_PATH);
-    fs::create_dir(modules_path)?;
+        application_prototype_metadata.application_path = application_path.to_string_lossy().into_owned();
+    fs::create_dir(&application_path)?;
+    let modules_path: PathBuf = application_path.join(MODULES_PATH);
+    fs::create_dir(&modules_path)?;
 
-    let images_path = application_path.join(IMAGES_PATH);
-    fs::create_dir(images_path)?;
+    let images_path: PathBuf = application_path.join(IMAGES_PATH);
+    fs::create_dir(&images_path)?;
 
-    let components_path = application_path.join(COMPONENTS_PATH);
-    fs::create_dir(components_path)?;
+    let components_path: PathBuf = application_path.join(COMPONENTS_PATH);
+    fs::create_dir(&components_path)?;
 
-    let layout_path = application_path.join(LAYOUT_PATH);
-    fs::create_dir(layout_path)?;
+    let layout_path: PathBuf = application_path.join(LAYOUT_PATH);
+    fs::create_dir(&layout_path)?;
+
+    let application_metadata_path: PathBuf = concat_path(&application_prototype_metadata.application_path, APPLICATION_PROTOTYPE_METADATA_PATH);
 
     save_to_yaml_file(
-        &application_prototype_metadata.application_path,
+        application_metadata_path,
         application_prototype_metadata,
     )?;
 
@@ -103,10 +107,10 @@ pub fn create_page_frame(page_metadata: &PageMetadata, frame: &mut Frame) -> Res
 
 fn create_frame(frame: &Frame) -> Result<()> {
     let frame_path: PathBuf  = PathBuf::from(&frame.frame_path);
-    let template_path = frame_path.join(FRAME_TEMPLATE_PATH);
-    let mut file = File::create(template_path)?;
+    let template_path: PathBuf = frame_path.join(FRAME_TEMPLATE_PATH);
+    let mut file: File = File::create(template_path)?;
     write!(file, "{}", frame.template)?;
-    let dataset_path = frame_path.join(FRAME_DATASET_PATH);
+    let dataset_path: PathBuf = frame_path.join(FRAME_DATASET_PATH);
     File::create(dataset_path)?;
     Ok(())
 }
@@ -114,7 +118,7 @@ fn create_frame(frame: &Frame) -> Result<()> {
 pub fn find_all_modules_metadata(
     application_prototype_metadata: &ApplicationPrototypeMetadata,
 ) -> Result<Vec<ModuleMetadata>> {
-    let modules_path = concat_path(&application_prototype_metadata.application_path, MODULES_PATH);
+    let modules_path: PathBuf = concat_path(&application_prototype_metadata.application_path, MODULES_PATH);
     let read_dir: ReadDir = fs::read_dir(&modules_path)?;
 
     Ok(read_dir
@@ -132,7 +136,7 @@ pub fn find_all_modules_metadata(
 }
 
 pub fn find_all_page_metadata(module_metadata: &ModuleMetadata) -> Result<Vec<PageMetadata>> {
-    let pages_path = concat_path(&module_metadata.module_path, PAGES_PATH);
+    let pages_path: PathBuf = concat_path(&module_metadata.module_path, PAGES_PATH);
     let read_dir: ReadDir = fs::read_dir(&pages_path)?;
 
     Ok(read_dir
@@ -155,7 +159,7 @@ pub fn find_all_page_metadata(module_metadata: &ModuleMetadata) -> Result<Vec<Pa
 pub fn find_all_component_metadata(
     application_prototype_metadata: &ApplicationPrototypeMetadata,
 ) -> Result<Vec<ComponentMetadata>> {
-    let components_path = concat_path(
+    let components_path: PathBuf = concat_path(
         &application_prototype_metadata.application_path,
         COMPONENTS_PATH,
     );
@@ -211,8 +215,8 @@ pub fn create_module_metadata(application_prototype_metadata: &ApplicationProtot
 }
 
 pub fn create_page_metadata(module_metadata: &ModuleMetadata, page_metadata: &mut PageMetadata) -> Result<()> {
-    let pages_dir = PathBuf::from(&module_metadata.module_path).join(PAGES_PATH);
-    let page_path = compute_file_path(&pages_dir, &page_metadata.page_name.value());
+    let pages_dir: PathBuf = PathBuf::from(&module_metadata.module_path).join(PAGES_PATH);
+    let page_path: PathBuf = compute_file_path(&pages_dir, &page_metadata.page_name.value());
     fs::create_dir(&page_path)?;
 
     let page_metadata_path: PathBuf = page_path.join(APPLICATION_PROTOTYPE_METADATA_PATH);

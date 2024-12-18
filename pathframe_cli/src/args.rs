@@ -11,6 +11,7 @@ pub struct PathframeArgs {
 
 #[derive(Debug, Subcommand)]
 pub enum EntityCommands {
+    CreateWorkspace,
     ///Manage the application prototypes (list, read...)
     #[command(aliases=["app","app-proto"])]
     ApplicationPrototype(ApplicationPrototypeCommands),
@@ -31,7 +32,6 @@ pub enum DesignSystemSubCommands {
     FindById
 }
 
-
 #[derive(Debug, Args)]
 pub struct ApplicationPrototypeCommands {
     #[clap(subcommand)]
@@ -42,11 +42,10 @@ pub struct ApplicationPrototypeCommands {
 pub enum ApplicationPrototypeSubCommands {
     ///Find all application prototypes into workspace
     List,
-    #[command(aliases=["create"])]
+    #[command(aliases=["create-app"])]
     CreateApplication(CreateApplicationArgs),
     FindById(FindApplicationByIdArgs),
     CreateModule(CreateModuleArgs),
-    ListModules(ListModulesArgs),
     CreatePage(CreatePageArgs),
     CreateComponent(CreateComponentArgs),
     ListComponent(ListComponentsArgs)
@@ -91,12 +90,6 @@ pub struct CreatePageArgs {
 
     #[arg(aliases=["name"])]
     pub page_name: String,
-}
-
-#[derive(Debug, Parser)]
-pub struct ListModulesArgs {
-    #[arg(aliases=["app-id"])]
-    pub application_id: String,
 }
 
 #[derive(Debug, Parser)]
