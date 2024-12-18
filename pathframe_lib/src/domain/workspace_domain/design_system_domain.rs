@@ -87,13 +87,19 @@ pub struct ColorSet {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorState {
-    pub bg: String,
-    pub border: BorderColor,
-    pub text: String,
+    pub bg: BackgroundColorToken,
+    pub border: BorderColorToken,
+    pub text: TextColorToken,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BorderColor(pub String);
+pub struct BackgroundColorToken(pub String);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TextColorToken(pub String);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BorderColorToken(pub String);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextTokens {

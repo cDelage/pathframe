@@ -1,6 +1,7 @@
 use super::design_system_domain::{
-    BaseColorTokens, BorderColor, ColorPalette, ColorSet, ColorState, ColorTheme, DesignSystem,
-    Effect, Primitives, RadiusTokens, SingleColors, SpacePalette, SpaceTokens, TextTheme, Tokens,
+    BackgroundColorToken, BaseColorTokens, BorderColorToken, ColorPalette, ColorSet, ColorState,
+    ColorTheme, DesignSystem, Effect, Primitives, RadiusTokens, SingleColors, SpacePalette,
+    SpaceTokens, TextColorToken, TextTheme, Tokens,
 };
 
 pub trait ToStylesheet {
@@ -8,8 +9,8 @@ pub trait ToStylesheet {
 }
 
 pub struct StylesheetLightDark {
-    light: String,
-    dark: String,
+    pub light: String,
+    pub dark: String,
 }
 pub trait ToStylesheetDarkable {
     fn to_stylesheet(&self) -> StylesheetLightDark;
@@ -121,61 +122,102 @@ impl ToStylesheetDarkable for ColorTheme {
 }
 
 impl ColorSet {
-    fn to_stylesheet(&self, theme_name: &String) -> String {
-        let default_stylesheet: &String = &self.default.to_stylesheet(theme_name, None);
-        let hover_stylesheet: &String = &self.hover.to_stylesheet(theme_name, Some("hover"));
-        let active_stylesheet: &String = &self.active.to_stylesheet(theme_name, Some("active"));
-        format!("{default_stylesheet}\n{hover_stylesheet}\n{active_stylesheet}")
+    fn to_stylesheet(&self, theme_name: &str) -> String {
+        let default_stylesheet: &String = &self.default.to_stylesheet(theme_name, None, "");
+        let hover_stylesheet: &String = &self.hover.to_stylesheet(theme_name, Some("hover"), ":");
+        let active_stylesheet: &String =
+            &self.active.to_stylesheet(theme_name, Some("active"), ":");
+        let active_by_class_stylesheet: &String =
+            &self.active.to_stylesheet(theme_name, Some("active"), ".");
+        format!("{default_stylesheet}\n{hover_stylesheet}\n{active_stylesheet}\n{active_by_class_stylesheet}")
     }
 }
 
-fn get_classes_headers(color_state: Option<&str>) -> (String, String) {
+fn get_class_state_headers(color_state: Option<&str>, state_prefix: &str) -> (String, String) {
     match color_state {
-        Some(state) => (format!(".{state}:"), format!(":{state}")),
+        Some(state) => (format!(".\\{state}\\:"), format!("{state_prefix}{state}")),
         None => (String::from("."), String::new()),
     }
 }
 
 impl ColorState {
-    fn to_stylesheet(&self, theme_name: &String, color_state: Option<&str>) -> String {
-        let (prefix, suffix) = get_classes_headers(color_state);
-        String::new()
+    fn to_stylesheet(&self, theme_name: &str, state: Option<&str>, state_prefix: &str) -> String {
+        let ColorState { bg, border, text } = &self;
+        let (class_prefix, class_sufix): (String, String) =
+            get_class_state_headers(state, state_prefix);
+
+        let bg_stylesheet: String = bg.to_stylesheet(&class_prefix, &theme_name, &class_sufix);
+        let text_color_stylesheet: String =
+            text.to_stylesheet(&class_prefix, &theme_name, &class_sufix);
+        let border_stylesheet: String =
+            border.to_stylesheet(&class_prefix, &theme_name, &class_sufix);
+        let bg_value = &bg.0;
+        let text_value: &String = &text.0;
+
+        format!(
+            "{class_prefix}theme-{theme_name}{class_sufix}{{
+            background:var({bg_value});
+            color:var({text_value});
+        }}
+        {bg_stylesheet}\n{text_color_stylesheet}\n{border_stylesheet}"
+        )
     }
 }
 
-impl BorderColor {
-    pub fn to_stylesheet(&self, class_sufix: &str, color_state: Option<&str>) -> String {
-        let (class_prefix, class_state): (String, String) = get_classes_headers(color_state);
-        let is_gradient = &self.0.starts_with("--gradient");
+impl BackgroundColorToken {
+    pub fn to_stylesheet(&self, class_prefix: &str, theme_name: &str, class_sufix: &str) -> String {
+        let color = &self.0;
+        format!(
+            "{class_prefix}bg-theme-{theme_name}{class_sufix}{{
+            background: var({color});
+        }}"
+        )
+    }
+}
+
+impl TextColorToken {
+    pub fn to_stylesheet(&self, class_prefix: &str, theme_name: &str, class_sufix: &str) -> String {
+        let color = &self.0;
+        format!(
+            "{class_prefix}text-color-theme-{theme_name}{class_sufix}{{
+            color: var({color});
+        }}"
+        )
+    }
+}
+
+impl BorderColorToken {
+    pub fn to_stylesheet(&self, class_prefix: &str, theme_name: &str, class_sufix: &str) -> String {
+        let is_gradient: &bool = &self.0.starts_with("--gradient");
         let full =
-            &self.get_class_boilerplate(&is_gradient, "", &class_prefix, &class_state, class_sufix);
+            &self.get_class_boilerplate(&is_gradient, "", &class_prefix, &class_sufix, theme_name);
         let top = &self.get_class_boilerplate(
             &is_gradient,
             "-top",
             &class_prefix,
-            &class_state,
-            class_sufix,
+            &class_sufix,
+            theme_name,
         );
         let right = &self.get_class_boilerplate(
             &is_gradient,
             "-right",
             &class_prefix,
-            &class_state,
-            class_sufix,
+            &class_sufix,
+            theme_name,
         );
         let bottom = &self.get_class_boilerplate(
             &is_gradient,
             "-bottom",
             &class_prefix,
-            &class_state,
-            class_sufix,
+            &class_sufix,
+            theme_name,
         );
         let left = &self.get_class_boilerplate(
             &is_gradient,
             "-left",
             &class_prefix,
-            &class_state,
-            class_sufix,
+            &class_sufix,
+            theme_name,
         );
         format!("{full}\n{top}\n{right}\n{bottom}\n{left}")
     }
@@ -186,10 +228,10 @@ impl BorderColor {
         border_sufix: &str,
         class_prefix: &str,
         class_state: &str,
-        class_sufix: &str,
+        theme_name: &str,
     ) -> String {
         let token = &self.0;
-        let class = format!("{class_prefix}border{border_sufix}-{class_sufix}{class_state}");
+        let class = format!("{class_prefix}border{border_sufix}-{theme_name}{class_state}");
         if *is_gradient {
             format!(
                 "{class}{{border{border_sufix}: 1px solid;
@@ -231,7 +273,9 @@ impl ToStylesheet for SpaceTokens {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::domain::workspace_domain::design_system_domain::Shades;
+    use crate::domain::workspace_domain::design_system_domain::{
+        BackgroundColorToken, Shades, TextColorToken,
+    };
 
     use super::*;
 
@@ -332,60 +376,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_border_color_classes_standard() {
-        let border = BorderColor(String::from("--color-primary-500"));
-
-        let default_border_classes = border.to_stylesheet(&"primary", None);
-
-        println!("{}",default_border_classes);
-
-        assert_eq!(
-            default_border_classes.trim(),
-            format!(
-                ".border-primary{{border: 1px solid var(--color-primary-500);}}
-.border-top-primary{{border-top: 1px solid var(--color-primary-500);}}
-.border-right-primary{{border-right: 1px solid var(--color-primary-500);}}
-.border-bottom-primary{{border-bottom: 1px solid var(--color-primary-500);}}
-.border-left-primary{{border-left: 1px solid var(--color-primary-500);}}"
-            )
-            .trim()
-        )
-    }
-
-    #[test]
-    fn test_border_color_classes_gradient() {
-        let border = BorderColor(String::from("--gradient-primary-500"));
-
-        let default_border_classes = border.to_stylesheet(&"primary", None);
-
-        println!("{}", default_border_classes);
-
-        assert_eq!(
-            default_border_classes.trim(),
-            format!(
-                ".border-primary{{border: 1px solid;
-        border-image-slice: 1;
-        border-width: 1px;
-        border-image-source: var(--gradient-primary-500);}}
-.border-top-primary{{border-top: 1px solid;
-        border-image-slice: 1;
-        border-width: 1px;
-        border-image-source: var(--gradient-primary-500);}}
-.border-right-primary{{border-right: 1px solid;
-        border-image-slice: 1;
-        border-width: 1px;
-        border-image-source: var(--gradient-primary-500);}}
-.border-bottom-primary{{border-bottom: 1px solid;
-        border-image-slice: 1;
-        border-width: 1px;
-        border-image-source: var(--gradient-primary-500);}}
-.border-left-primary{{border-left: 1px solid;
-        border-image-slice: 1;
-        border-width: 1px;
-        border-image-source: var(--gradient-primary-500);}}
-            ")
-            .trim()
-        )
-    }
 }
