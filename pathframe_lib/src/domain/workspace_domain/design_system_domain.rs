@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct DesignSystem {
     pub design_system_id: String,
     pub design_system_name: String,
-    pub dark_mode_defined: bool,
+    pub dark_mode: bool,
     pub primitives: Primitives,
     pub tokens: Tokens,
     #[serde(skip_deserializing)]
@@ -54,8 +54,8 @@ pub struct Tokens {
     pub colors_themes: Vec<ColorTheme>,
     pub text_tokens: TextTokens,
     pub radius_tokens: RadiusTokens,
-    pub shadows: Vec<Effect>,
     pub space_tokens: SpaceTokens,
+    pub effects: Vec<Effect>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

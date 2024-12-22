@@ -4,11 +4,20 @@ use clap::Parser;
 
 use colored::*;
 use pathframe_lib::{
-    application::workspace_service::{self, application_prototype_service},
-    domain::workspace_domain::{application_prototype_domain::{
-        ApplicationPrototype, ApplicationPrototypeMetadata, ComponentMetadata, Module,
-        ModuleMetadata, PageMetadata,
-    }, Workspace},
+    application::workspace_service::{
+        self, application_prototype_service,
+        design_system_service::{
+            design_system_to_stylesheet, find_all_design_systems, find_design_system_by_id,
+        },
+    },
+    domain::workspace_domain::{
+        application_prototype_domain::{
+            ApplicationPrototype, ApplicationPrototypeMetadata, ComponentMetadata, Module,
+            ModuleMetadata, PageMetadata,
+        },
+        design_system_domain::DesignSystem,
+        Workspace,
+    },
 };
 
 mod args;
@@ -17,12 +26,12 @@ fn main() -> Result<()> {
     let args = PathframeArgs::parse();
 
     // Match sur les différentes commandes et arguments
-    let workspace_path = &args.workspace.ok_or(anyhow!("Fail to find workspace path"))?;
-    let workspace_option: Option<Workspace> = 
-    if let EntityCommands::ApplicationPrototype(_) = &args.command {
-        Some(workspace_service::find_workspace_by_path(&workspace_path)?)
-    } else {
-        None
+    let workspace_path = &args
+        .workspace
+        .ok_or(anyhow!("Fail to find workspace path"))?;
+    let workspace_option: Option<Workspace> = match &args.command {
+        EntityCommands::CreateWorkspace => None,
+        _ => Some(workspace_service::find_workspace_by_path(&workspace_path)?),
     };
 
     match args.command {
@@ -37,7 +46,8 @@ fn main() -> Result<()> {
             );
         }
         EntityCommands::ApplicationPrototype(subcommand) => {
-            let workspace = workspace_option.ok_or(anyhow!("fail to find workspace"))?;
+            println!("workspace: {:?}", workspace_option);
+            let workspace: Workspace = workspace_option.ok_or(anyhow!("fail to find workspace"))?;
             match subcommand.command {
                 // Cas de la sous-commande List
                 ApplicationPrototypeSubCommands::List => {
@@ -45,8 +55,9 @@ fn main() -> Result<()> {
                         application_prototype_service::find_all_application_prototypes(&workspace)?;
 
                     application_prototypes.iter().for_each(|application| {
-                        let app_name = &application.application_name.bright_white();
-                        let app_path = &application.application_path.truecolor(128, 128, 128);
+                        let app_name: &ColoredString = &application.application_name.bright_white();
+                        let app_path: &ColoredString =
+                            &application.application_path.truecolor(128, 128, 128);
                         println!("{} - {}", app_name, app_path);
                     });
                 }
@@ -139,6 +150,30 @@ fn main() -> Result<()> {
                         let component_path = &component.component_path.truecolor(128, 128, 128);
                         println!("{} - {}", component_name, component_path);
                     });
+                }
+            }
+        }
+        EntityCommands::DesignSystem(subcommand) => {
+            let workspace: Workspace = workspace_option.ok_or(anyhow!("fail to find workspace"))?;
+            match subcommand.command {
+                args::DesignSystemSubCommands::List => {
+                    let all_design_systems: Vec<DesignSystem> =
+                        find_all_design_systems(&workspace)?;
+                    all_design_systems
+                        .iter()
+                        .for_each(|design_system: &DesignSystem| {
+                            println!("{}", design_system.design_system_name)
+                        });
+                }
+                args::DesignSystemSubCommands::FindById(payload) => {
+                    let design_system: DesignSystem =
+                        find_design_system_by_id(&workspace, &payload.design_system_id)?;
+                    println!("{}", design_system.design_system_name);
+                }
+                args::DesignSystemSubCommands::ToStylesheet(payload) => {
+                    let design_system: String =
+                        design_system_to_stylesheet(&workspace, &payload.design_system_id)?;
+                    println!("{}", design_system);
                 }
             }
         }

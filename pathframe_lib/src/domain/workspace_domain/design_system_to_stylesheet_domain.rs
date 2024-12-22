@@ -1,7 +1,7 @@
 use super::design_system_domain::{
     BackgroundColorToken, BaseColorTokens, BorderColorToken, ColorPalette, ColorSet, ColorState,
-    ColorTheme, DesignSystem, Effect, Primitives, RadiusTokens, SingleColors, SpacePalette,
-    SpaceTokens, TextColorToken, TextTheme, Tokens,
+    ColorTheme, DesignSystem, Effect, EffectType, Primitives, RadiusTokens, SingleColors,
+    SpacePalette, SpaceTokens, TextColorToken, TextTheme, TextTokens, Tokens,
 };
 
 pub trait ToStylesheet {
@@ -16,9 +16,42 @@ pub trait ToStylesheetDarkable {
     fn to_stylesheet(&self) -> StylesheetLightDark;
 }
 
+impl StylesheetLightDark {
+    pub fn get_light_stylesheet(stylesheets: &Vec<StylesheetLightDark>) -> String {
+        stylesheets
+            .iter()
+            .map(|effect| effect.light.clone())
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
+
+    pub fn get_dark_stylesheet(stylesheets: &Vec<StylesheetLightDark>) -> String {
+        stylesheets
+            .iter()
+            .map(|effect| effect.dark.clone())
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
+}
+
 impl ToStylesheet for DesignSystem {
     fn to_stylesheet(&self) -> String {
-        String::new()
+        let DesignSystem {
+            primitives, tokens, ..
+        } = self;
+        let primitives_stylesheet: String = primitives.to_stylesheet();
+        let StylesheetLightDark {dark, light} = tokens.to_stylesheet();
+        format!("
+            :root {{
+                {primitives_stylesheet}
+                {light}
+            }}
+            @media (prefers-color-scheme: dark) {{
+            :root {{
+                {dark}
+            }}
+            }}
+        ")
     }
 }
 
@@ -71,9 +104,58 @@ impl ToStylesheet for SpacePalette {
     }
 }
 
-impl ToStylesheet for Tokens {
-    fn to_stylesheet(&self) -> String {
-        String::new()
+impl ToStylesheetDarkable for Tokens {
+    fn to_stylesheet(&self) -> StylesheetLightDark {
+        let Tokens {
+            light_default_single_tokens,
+            dark_default_single_tokens,
+            colors_themes,
+            text_tokens,
+            radius_tokens,
+            space_tokens,
+            effects,
+        } = self;
+        let light_default_tokens_stylesheet: String = light_default_single_tokens.to_stylesheet();
+        let dark_default_single_tokens_stylesheet: String = match dark_default_single_tokens {
+            Some(tokens) => tokens.to_stylesheet(),
+            None => String::new(),
+        };
+        let colors_themes_stylesheets: Vec<StylesheetLightDark> = colors_themes
+            .iter()
+            .map(|color_theme| {
+                let ColorTheme {
+                    light,
+                    dark,
+                    theme_name,
+                } = color_theme;
+                StylesheetLightDark {
+                    light: light.to_stylesheet(theme_name),
+                    dark: match dark {
+                        Some(theme) => theme.to_stylesheet(theme_name),
+                        None => String::new(),
+                    },
+                }
+            })
+            .collect::<Vec<StylesheetLightDark>>();
+        let color_themes_light_stylesheet: String =
+            StylesheetLightDark::get_light_stylesheet(&colors_themes_stylesheets);
+        let color_themes_dark_stylesheet: String =
+            StylesheetLightDark::get_dark_stylesheet(&colors_themes_stylesheets);
+
+        let text_tokens_stylesheet: String = text_tokens.to_stylesheet();
+        let radius_tokens_stylesheet: String = radius_tokens.to_stylesheet();
+        let space_tokens_stylesheet: String = space_tokens.to_stylesheet();
+        let effect_stylesheets: Vec<StylesheetLightDark> = effects
+            .iter()
+            .map(|effect| effect.to_stylesheet())
+            .collect::<Vec<StylesheetLightDark>>();
+        let light_effects: String = StylesheetLightDark::get_light_stylesheet(&effect_stylesheets);
+        let dark_effects = StylesheetLightDark::get_dark_stylesheet(&effect_stylesheets);
+
+        StylesheetLightDark {
+            light: format!("{light_default_tokens_stylesheet}\n{color_themes_light_stylesheet}\n{text_tokens_stylesheet}\n{radius_tokens_stylesheet}\n{space_tokens_stylesheet}\n{light_effects}"),
+            dark: format!("{dark_default_single_tokens_stylesheet}\n{color_themes_dark_stylesheet}\n{dark_effects}"),
+        }
     }
 }
 
@@ -109,7 +191,7 @@ impl ToStylesheetDarkable for ColorTheme {
             dark,
             theme_name,
         } = &self;
-        let light_stylesheet = light.to_stylesheet(theme_name);
+        let light_stylesheet: String = light.to_stylesheet(theme_name);
         let dark_stylesheet: String = match dark {
             Some(color_set) => color_set.to_stylesheet(theme_name),
             None => String::new(),
@@ -245,27 +327,114 @@ impl BorderColorToken {
     }
 }
 
-impl ToStylesheet for TextTheme {
+impl ToStylesheet for TextTokens {
     fn to_stylesheet(&self) -> String {
-        String::new()
+        let TextTokens {
+            bold_weight,
+            default_weight,
+            font,
+            font_size_lg,
+            font_size_md,
+            font_size_sm,
+            h1,
+            h2,
+            h3,
+            light_weight,
+            p,
+        } = &self;
+        let p_stylesheet: String = p.to_stylesheet("p");
+        let h1_stylesheet: String = h1.to_stylesheet("h1");
+        let h2_stylesheet: String = h2.to_stylesheet("h2");
+        let h3_stylesheet: String = h3.to_stylesheet("h3");
+        format!(
+            "font-weight:{default_weight};
+            font-family:{font};
+            font-size:{font_size_md};
+            {p_stylesheet}\n{h1_stylesheet}\n{h2_stylesheet}\n{h3_stylesheet}
+            .font-light{{
+                font-weight:{light_weight};
+            }}
+            .font-normal{{
+                font-weight:{default_weight};
+            }}
+            .font-bold{{
+                font-weight:{bold_weight};
+            }}
+            .text-sm{{
+                font-size:{font_size_sm};
+            }}
+            .text-normal{{
+                font-size:{font_size_md};
+            }}
+            .text-lg{{
+                font-size:{font_size_lg};
+            }}"
+        )
     }
 }
 
-impl ToStylesheet for Effect {
-    fn to_stylesheet(&self) -> String {
-        String::new()
+impl TextTheme {
+    fn to_stylesheet(&self, class: &str) -> String {
+        let TextTheme {
+            font_size,
+            font_weight,
+            line_height,
+        } = &self;
+        format!(
+            "{class}{{
+            font-size:{font_size};
+            font-weight:{font_weight};
+            line_height:{line_height};
+        }}"
+        )
+    }
+}
+
+impl ToStylesheetDarkable for Effect {
+    fn to_stylesheet(&self) -> StylesheetLightDark {
+        let Effect {
+            effect_name,
+            light,
+            dark,
+            effect_type,
+        } = &self;
+        match effect_type {
+            EffectType::Shadow => {
+                let dark_stylesheet: String = match dark {
+                    Some(token) => format!(".{effect_name}{{box-shadow:{token}}}"),
+                    None => String::new(),
+                };
+                StylesheetLightDark {
+                    light: format!(".{effect_name}{{box-shadow:{light}}}"),
+                    dark: dark_stylesheet,
+                }
+            }
+        }
     }
 }
 
 impl ToStylesheet for RadiusTokens {
     fn to_stylesheet(&self) -> String {
-        String::new()
+        let RadiusTokens { default, large } = self;
+        format!(
+            ".rounded{{border-radius:{default};}}
+        .rounded-lg{{border-radius:{large};}}"
+        )
     }
 }
 
 impl ToStylesheet for SpaceTokens {
     fn to_stylesheet(&self) -> String {
-        String::new()
+        let SpaceTokens {
+            default_page_padding,
+            default_element_padding,
+        } = self;
+        format!(
+            "
+            --page-padding:{default_page_padding};
+            --element-padding:{default_element_padding};
+        "
+        )
     }
 }
 
@@ -273,9 +442,7 @@ impl ToStylesheet for SpaceTokens {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::domain::workspace_domain::design_system_domain::{
-        BackgroundColorToken, Shades, TextColorToken,
-    };
+    use crate::domain::workspace_domain::design_system_domain::Shades;
 
     use super::*;
 
@@ -376,4 +543,84 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_text_tokens_to_stylesheet() {
+        let text_tokens = TextTokens {
+            p: TextTheme {
+                font_size: String::from("10px"),
+                font_weight: 500,
+                line_height: String::from("12px"),
+            },
+            h1: TextTheme {
+                font_size: String::from("18px"),
+                font_weight: 500,
+                line_height: String::from("20px"),
+            },
+            h2: TextTheme {
+                font_size: String::from("20px"),
+                font_weight: 500,
+                line_height: String::from("24px"),
+            },
+            h3: TextTheme {
+                font_size: String::from("24px"),
+                font_weight: 500,
+                line_height: String::from("28px"),
+            },
+            bold_weight: 700,
+            default_weight: 500,
+            light_weight: 400,
+            font: String::from("Arial"),
+            font_size_lg: String::from("28px"),
+            font_size_md: String::from("24px"),
+            font_size_sm: String::from("20px"),
+        };
+
+        let stylesheet = text_tokens.to_stylesheet();
+
+        assert_eq!(
+            "font-weight:500;
+            font-family:Arial;
+            font-size:24px;
+            p{
+            font-size:10px;
+            font-weight:500;
+            line_height:12px;
+        }
+h1{
+            font-size:18px;
+            font-weight:500;
+            line_height:20px;
+        }
+h2{
+            font-size:20px;
+            font-weight:500;
+            line_height:24px;
+        }
+h3{
+            font-size:24px;
+            font-weight:500;
+            line_height:28px;
+        }
+            .font-light{
+                font-weight:400;
+            }
+            .font-normal{
+                font-weight:500;
+            }
+            .font-bold{
+                font-weight:700;
+            }
+            .text-sm{
+                font-size:20px;
+            }
+            .text-normal{
+                font-size:24px;
+            }
+            .text-lg{
+                font-size:28px;
+            }"
+            .trim(),
+            stylesheet.trim()
+        );
+    }
 }

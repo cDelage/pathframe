@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use crate::domain::workspace_domain::design_system_to_stylesheet_domain::ToStylesheet;
 use crate::domain::workspace_domain::{design_system_domain::DesignSystem, Workspace};
 use crate::infrastructure::workspace_repository::design_system_repository;
 
@@ -16,4 +17,18 @@ pub fn find_design_system_by_id(
         .into_iter()
         .find(|ds| ds.design_system_id == design_system_id)
         .ok_or_else(|| anyhow!("Design system with ID {} not found", design_system_id))
+}
+
+pub fn design_system_to_stylesheet(
+    workspace: &Workspace,
+    design_system_id: &str,
+) -> Result<String> {
+    let design_systems: Vec<DesignSystem> = design_system_repository::find_all_design_systems(&workspace)?;
+
+    let design_system = design_systems
+        .into_iter()
+        .find(|ds| ds.design_system_id == design_system_id)
+        .ok_or_else(|| anyhow!("Design system with ID {} not found", design_system_id))?;
+
+    Ok(design_system.to_stylesheet())
 }

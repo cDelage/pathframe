@@ -1,7 +1,12 @@
-use std::{fs, path::{Path, PathBuf}};
+use crate::{
+    domain::workspace_domain::{design_system_domain::DesignSystem, Workspace},
+    infrastructure::load_json,
+};
 use anyhow::Result;
-use crate::{domain::workspace_domain::{design_system_domain::DesignSystem, Workspace}, infrastructure::load_json};
-
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 const DESIGN_SYSTEMS_PATH: &str = "design_systems";
 const DESIGN_SYSTEM_INDEX_PATH: &str = "design_system.json";
@@ -13,11 +18,13 @@ pub fn find_all_design_systems(workspace: &Workspace) -> Result<Vec<DesignSystem
     Ok(read_dir
         .into_iter()
         .filter_map(|dir_entry| {
-            let dir = dir_entry.ok()?;
+            let dir: fs::DirEntry = dir_entry.ok()?;
+            println!("design system : {:?}", dir);
 
             if !dir.path().is_dir() || !dir.path().join(DESIGN_SYSTEM_INDEX_PATH).is_file() {
                 return None;
             }
+
             let design_system = load_json::<DesignSystem>(&dir, DESIGN_SYSTEM_INDEX_PATH).ok()?;
             Some(design_system)
         })

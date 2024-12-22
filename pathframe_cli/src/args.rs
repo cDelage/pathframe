@@ -15,21 +15,27 @@ pub enum EntityCommands {
     ///Manage the application prototypes (list, read...)
     #[command(aliases=["app","app-proto"])]
     ApplicationPrototype(ApplicationPrototypeCommands),
+    DesignSystem(DesignSystemCommands)
 }
-
-
 
 #[derive(Debug, Args)]
 pub struct DesignSystemCommands {
     #[clap(subcommand)]
-    pub command: ApplicationPrototypeSubCommands,
+    pub command: DesignSystemSubCommands,
+}
+
+#[derive(Debug, Parser)]
+pub struct FindDesignSystemByIdArgs {
+    #[arg(aliases=["ds-id"])]
+    pub design_system_id: String,
 }
 
 #[derive(Debug, Subcommand)]
 
 pub enum DesignSystemSubCommands {
     List,
-    FindById
+    FindById(FindDesignSystemByIdArgs),
+    ToStylesheet(FindDesignSystemByIdArgs)
 }
 
 #[derive(Debug, Args)]
