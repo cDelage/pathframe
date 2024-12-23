@@ -1,11 +1,15 @@
-use crate::{domain::workspace_domain::{
-    application_prototype_domain::{
-        ApplicationPrototypeMetadata, ComponentMetadata, Frame, ModuleMetadata, PageMetadata,
+use crate::{
+    domain::workspace_domain::{
+        application_prototype_domain::{
+            ApplicationPrototypeMetadata, Frame, FrameMetadata, FrameName,
+            FrameType,
+        },
+        Workspace,
     },
-    Workspace,
-}, infrastructure::{compute_file_path, concat_path, load_yaml, save_to_yaml_file}};
+    infrastructure::{compute_file_path, concat_path, load_yaml, save_to_yaml_file},
+};
 use anyhow::Result;
-use std::{fs::DirEntry, io::Write};
+use std::{ffi::OsStr, fs::DirEntry, io::Write};
 use std::{
     fs::{self, File, ReadDir},
     path::PathBuf,
@@ -14,12 +18,6 @@ use std::{
 use super::APPLICATION_PROTOTYPES_PATH;
 
 const APPLICATION_PROTOTYPE_METADATA_PATH: &str = "application_metadata.yaml";
-const MODULE_METADATA_PATH: &str = "module_metadata.yaml";
-const PAGE_METADATA_PATH: &str = "page_metadata.yaml";
-const COMPONENT_METADATA_PATH: &str = "component_metadata.yaml";
-const FRAME_TEMPLATE_PATH: &str = "template.html";
-const FRAME_DATASET_PATH: &str = "dataset.yaml";
-const MODULES_PATH: &str = "modules";
 const PAGES_PATH: &str = "pages";
 const IMAGES_PATH: &str = "images";
 const COMPONENTS_PATH: &str = "components";
@@ -34,7 +32,11 @@ pub fn find_all_application_prototypes(
     Ok(read_dir
         .filter_map(|dir_entry| {
             let dir = dir_entry.ok()?;
-            if !dir.path().is_dir() || !dir.path().join(APPLICATION_PROTOTYPE_METADATA_PATH).is_file()
+            if !dir.path().is_dir()
+                || !dir
+                    .path()
+                    .join(APPLICATION_PROTOTYPE_METADATA_PATH)
+                    .is_file()
             {
                 return None;
             }
@@ -48,7 +50,9 @@ pub fn find_all_application_prototypes(
         .collect())
 }
 
-pub fn save_application_prototype_metadata(application_prototype: &ApplicationPrototypeMetadata) -> Result<()> {
+pub fn save_application_prototype_metadata(
+    application_prototype: &ApplicationPrototypeMetadata,
+) -> Result<()> {
     save_to_yaml_file(
         &application_prototype.application_path,
         application_prototype,
@@ -62,13 +66,18 @@ pub fn create_application_repository(
     workspace: &Workspace,
     application_prototype_metadata: &mut ApplicationPrototypeMetadata,
 ) -> Result<()> {
-    let folder_pathbuf: PathBuf = concat_path(&workspace.workspace_path, APPLICATION_PROTOTYPES_PATH);
-    let application_path: PathBuf =
-        compute_file_path(&folder_pathbuf, &application_prototype_metadata.application_name);
-        application_prototype_metadata.application_path = application_path.to_string_lossy().into_owned();
+    let folder_pathbuf: PathBuf =
+        concat_path(&workspace.workspace_path, APPLICATION_PROTOTYPES_PATH);
+    let application_path: PathBuf = compute_file_path(
+        &folder_pathbuf,
+        &application_prototype_metadata.application_name,
+    );
+    application_prototype_metadata.application_path =
+        application_path.to_string_lossy().into_owned();
     fs::create_dir(&application_path)?;
-    let modules_path: PathBuf = application_path.join(MODULES_PATH);
-    fs::create_dir(&modules_path)?;
+
+    let pages_path: PathBuf = application_path.join(PAGES_PATH);
+    fs::create_dir(&pages_path)?;
 
     let images_path: PathBuf = application_path.join(IMAGES_PATH);
     fs::create_dir(&images_path)?;
@@ -79,149 +88,68 @@ pub fn create_application_repository(
     let layout_path: PathBuf = application_path.join(LAYOUT_PATH);
     fs::create_dir(&layout_path)?;
 
-    let application_metadata_path: PathBuf = concat_path(&application_prototype_metadata.application_path, APPLICATION_PROTOTYPE_METADATA_PATH);
-
-    save_to_yaml_file(
-        application_metadata_path,
-        application_prototype_metadata,
-    )?;
-
-    Ok(())
-}
-
-pub fn create_frame_layout(application: &ApplicationPrototypeMetadata, frame: &mut Frame) -> Result<()> {
-    let layout_path: PathBuf = concat_path(&application.application_path, LAYOUT_PATH);
-    frame.frame_path = layout_path.to_string_lossy().into_owned();
-    create_frame(frame)
-}
-
-pub fn create_frame_component(component_metadata: &ComponentMetadata, frame: &mut Frame) -> Result<()> {
-    frame.frame_path = component_metadata.component_path.clone();
-    create_frame(frame)
-}
-
-pub fn create_page_frame(page_metadata: &PageMetadata, frame: &mut Frame) -> Result<()> {
-    frame.frame_path = page_metadata.page_path.clone();
-    create_frame(frame)
-}
-
-fn create_frame(frame: &Frame) -> Result<()> {
-    let frame_path: PathBuf  = PathBuf::from(&frame.frame_path);
-    let template_path: PathBuf = frame_path.join(FRAME_TEMPLATE_PATH);
-    let mut file: File = File::create(template_path)?;
-    write!(file, "{}", frame.template)?;
-    let dataset_path: PathBuf = frame_path.join(FRAME_DATASET_PATH);
-    File::create(dataset_path)?;
-    Ok(())
-}
-
-pub fn find_all_modules_metadata(
-    application_prototype_metadata: &ApplicationPrototypeMetadata,
-) -> Result<Vec<ModuleMetadata>> {
-    let modules_path: PathBuf = concat_path(&application_prototype_metadata.application_path, MODULES_PATH);
-    let read_dir: ReadDir = fs::read_dir(&modules_path)?;
-
-    Ok(read_dir
-        .filter_map(|dir_entry| {
-            let dir = dir_entry.ok()?;
-            if !dir.path().is_dir() || !dir.path().join(MODULE_METADATA_PATH).is_file() {
-                return None;
-            }
-            let mut module_metadata = load_yaml::<ModuleMetadata>(&dir, &MODULE_METADATA_PATH).ok()?;
-            let path = dir.path().to_string_lossy().into_owned();
-            module_metadata.module_path = path.clone();
-            Some(module_metadata)
-        })
-        .collect::<Vec<ModuleMetadata>>())
-}
-
-pub fn find_all_page_metadata(module_metadata: &ModuleMetadata) -> Result<Vec<PageMetadata>> {
-    let pages_path: PathBuf = concat_path(&module_metadata.module_path, PAGES_PATH);
-    let read_dir: ReadDir = fs::read_dir(&pages_path)?;
-
-    Ok(read_dir
-        .into_iter()
-        .filter_map(|dir_entry| {
-            let dir: DirEntry = dir_entry.ok()?;
-            if !dir.path().is_dir() || !dir.path().join(PAGE_METADATA_PATH).is_file() {
-                return None;
-            }
-            load_yaml::<PageMetadata>(&dir, &PAGES_PATH)
-                .ok()
-                .map(|mut page_metadata| {
-                    page_metadata.page_path = dir.path().to_string_lossy().into_owned();
-                    page_metadata
-                })
-        })
-        .collect::<Vec<PageMetadata>>())
-}
-
-pub fn find_all_component_metadata(
-    application_prototype_metadata: &ApplicationPrototypeMetadata,
-) -> Result<Vec<ComponentMetadata>> {
-    let components_path: PathBuf = concat_path(
+    let application_metadata_path: PathBuf = concat_path(
         &application_prototype_metadata.application_path,
-        COMPONENTS_PATH,
+        APPLICATION_PROTOTYPE_METADATA_PATH,
     );
 
-    let read_dir = fs::read_dir(components_path)?;
+    save_to_yaml_file(application_metadata_path, application_prototype_metadata)?;
+
+    Ok(())
+}
+
+pub fn find_frames_metadata(
+    application_prototype_metadata: &ApplicationPrototypeMetadata,
+    frame_type: FrameType,
+) -> Result<Vec<FrameMetadata>> {
+    let frame_uri = get_frame_uri(&frame_type);
+    let frames_path: PathBuf =
+        concat_path(&application_prototype_metadata.application_path, frame_uri);
+
+    let read_dir: ReadDir = fs::read_dir(&frames_path)?;
 
     Ok(read_dir
         .into_iter()
-        .filter_map(|component_dir| {
-            let dir = component_dir.ok()?;
-
-            if !&dir.path().is_dir() || !&dir.path().join(COMPONENT_METADATA_PATH).is_file() {
+        .filter_map(|dir_entry| {
+            let page_entry: DirEntry = dir_entry.ok()?;
+            let page_entry_path: PathBuf = page_entry.path();
+            let extension: &OsStr = page_entry_path.extension()?;
+            if extension != "html" {
                 return None;
             }
 
-            load_yaml::<ComponentMetadata>(&dir, COMPONENT_METADATA_PATH)
-                .ok()
-                .map(|mut component_metadata| {
-                    component_metadata.component_path = dir.path().to_string_lossy().into_owned();
-                    component_metadata
-                })
+            let frame_ostr: &OsStr = page_entry_path.file_stem()?;
+            let frame_name_str = frame_ostr.to_str()?;
+            let frame_name: FrameName = FrameName::parse(String::from(frame_name_str)).ok()?;
+            Some(FrameMetadata {
+                frame_name,
+                frame_path: page_entry.path().to_string_lossy().into_owned(),
+                frame_type: frame_type.to_owned().clone(),
+            })
         })
-        .collect::<Vec<ComponentMetadata>>())
+        .collect::<Vec<FrameMetadata>>())
 }
 
-
-pub fn create_component_metadata(application_prototype_metadata: &ApplicationPrototypeMetadata, component_metadata: &mut ComponentMetadata) -> Result<()> {
-    let components_dir: PathBuf = PathBuf::from(&application_prototype_metadata.application_path).join(COMPONENTS_PATH);
-    let component_path: PathBuf =
-        compute_file_path(&components_dir, &component_metadata.component_name.value());
-
-    fs::create_dir(&component_path)?;
-
-    let component_metadata_path: &PathBuf = &component_path.join(COMPONENT_METADATA_PATH);
-    
-    save_to_yaml_file(component_metadata_path, component_metadata)?;
-
-    component_metadata.component_path = component_metadata_path.to_string_lossy().into_owned();
-
+pub fn create_frame(
+    application_prototype_metadata: &ApplicationPrototypeMetadata,
+    frame_metadata: &mut FrameMetadata,
+) -> Result<()> {
+    let uri: &str = get_frame_uri(&frame_metadata.frame_type);
+    let components_path: PathBuf =
+        concat_path(&application_prototype_metadata.application_path, uri);
+    let component_file: String = format!("{}.html", &frame_metadata.frame_name.value());
+    let frame_pathbuf: PathBuf = components_path.join(component_file);
+    frame_metadata.frame_path = frame_pathbuf.to_string_lossy().into_owned();
+    let frame: Frame = Frame::from(frame_metadata.clone());
+    let mut file: File = File::create(frame_pathbuf)?;
+    write!(file, "{}", frame.template)?;
     return Ok(());
 }
 
-pub fn create_module_metadata(application_prototype_metadata: &ApplicationPrototypeMetadata, module_metadata: &mut ModuleMetadata) -> Result<()> {
-    let module_dir: PathBuf = PathBuf::from(&application_prototype_metadata.application_path).join(MODULES_PATH);
-    let module_path: PathBuf = compute_file_path(&module_dir, &module_metadata.module_name.value());
-    fs::create_dir(&module_path)?;
-    let module_pages_path: &PathBuf = &module_path.join(PAGES_PATH);
-    fs::create_dir(&module_pages_path)?;
-    let module_metadata_path: &PathBuf = &module_path.join(MODULE_METADATA_PATH);
-    save_to_yaml_file(module_metadata_path, &module_metadata)?;
-    module_metadata.module_path = module_path.to_string_lossy().into_owned();
-    Ok(())
-}
-
-pub fn create_page_metadata(module_metadata: &ModuleMetadata, page_metadata: &mut PageMetadata) -> Result<()> {
-    let pages_dir: PathBuf = PathBuf::from(&module_metadata.module_path).join(PAGES_PATH);
-    let page_path: PathBuf = compute_file_path(&pages_dir, &page_metadata.page_name.value());
-    fs::create_dir(&page_path)?;
-
-    let page_metadata_path: PathBuf = page_path.join(APPLICATION_PROTOTYPE_METADATA_PATH);
-    save_to_yaml_file(page_metadata_path, &page_metadata)?;
-
-    page_metadata.page_path = page_path.to_string_lossy().into_owned();
-    Ok(())
+fn get_frame_uri(frame_type: &FrameType) -> &str {
+    match frame_type {
+        FrameType::Component => COMPONENTS_PATH,
+        FrameType::Page => PAGES_PATH,
+        FrameType::Layout => "",
+    }
 }

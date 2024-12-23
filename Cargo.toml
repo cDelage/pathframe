@@ -1,3 +1,3 @@
 [workspace]
 
-members = ["pathframe_cli","pathframe_lib"]
+members = ["pathframe_cli","pathframe_lib", "pathframe_player\\src-tauri"]

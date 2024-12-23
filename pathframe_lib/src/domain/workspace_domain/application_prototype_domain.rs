@@ -6,8 +6,8 @@ use crate::infrastructure::is_kebab_case;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApplicationPrototype {
     pub application_prototype_metadata: ApplicationPrototypeMetadata,
-    pub components: Vec<ComponentMetadata>,
-    pub modules: Vec<Module>,
+    pub components: Vec<FrameMetadata>,
+    pub pages: Vec<FrameMetadata>,
 }
 
 /// Metadata of Application prototype.
@@ -24,44 +24,12 @@ pub struct ApplicationPrototypeMetadata {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FrameName(String);
 
-pub struct ComponentMetadata {
-    pub component_id: String,
-    pub component_name: SelectorName,
-    #[serde(skip_deserializing)]
-    pub component_path: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-
-pub struct ModuleMetadata {
-    pub module_id: String,
-    pub module_name: SelectorName,
-    #[serde(skip_deserializing)]
-    pub module_path: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Module {
-    pub module_metadata: ModuleMetadata,
-    pub pages: Vec<PageMetadata>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PageMetadata {
-    pub page_id: String,
-    pub page_name: SelectorName,
-    #[serde(skip_deserializing)]
-    pub page_path: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SelectorName(String);
-
-impl SelectorName {
-    pub fn parse(name: String) -> Result<SelectorName> {
+impl FrameName {
+    pub fn parse(name: String) -> Result<FrameName> {
         if is_kebab_case(&name) {
-            return Ok(SelectorName(name));
+            return Ok(FrameName(name));
         }
         Err(anyhow!(
             "Fail to parse selector name in snake case: {}",
@@ -71,6 +39,12 @@ impl SelectorName {
 
     pub fn value(&self) -> &str {
         &self.0
+    }
+}
+
+impl Default for FrameName {
+    fn default() -> FrameName {
+        FrameName(String::new())
     }
 }
 
@@ -84,15 +58,24 @@ pub enum FrameType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Frame {
     pub template: String,
-    pub dataset: String,
+    #[serde(skip_deserializing)]
+    pub frame_name: FrameName,
+    #[serde(skip_deserializing)]
+    pub frame_path: String,
+    pub frame_type: FrameType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FrameMetadata {
+    pub frame_name: FrameName,
     #[serde(skip_deserializing)]
     pub frame_path: String,
     pub frame_type: FrameType,
 }
 
 impl Frame {
-    pub fn from(frame_type: FrameType) -> Frame {
-        let template: String = match frame_type {
+    pub fn from(frame_metadata: FrameMetadata) -> Frame {
+        let template: String = match frame_metadata.frame_type {
             FrameType::Layout => String::from("<body></body>"),
             FrameType::Page => String::from("<main></main>"),
             FrameType::Component => String::from("<div></div>"),
@@ -100,9 +83,9 @@ impl Frame {
 
         Frame {
             template,
-            dataset: String::new(),
-            frame_path: String::new(),
-            frame_type,
+            frame_path: frame_metadata.frame_path,
+            frame_type: frame_metadata.frame_type,
+            frame_name: frame_metadata.frame_name
         }
     }
 }

@@ -97,8 +97,9 @@ fn concat_path(left: &str, right: &str) -> PathBuf {
     )
 }
 
+
 pub fn is_kebab_case(input: &str) -> bool {
-    let kebab_case_pattern = regex::Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap();
+    let kebab_case_pattern = regex::Regex::new(r"^[a-z0-9]+([-_][a-z0-9]+)*$").unwrap();
     kebab_case_pattern.is_match(input)
 }
 

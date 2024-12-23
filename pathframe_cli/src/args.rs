@@ -51,7 +51,6 @@ pub enum ApplicationPrototypeSubCommands {
     #[command(aliases=["create-app"])]
     CreateApplication(CreateApplicationArgs),
     FindById(FindApplicationByIdArgs),
-    CreateModule(CreateModuleArgs),
     CreatePage(CreatePageArgs),
     CreateComponent(CreateComponentArgs),
     ListComponent(ListComponentsArgs)
