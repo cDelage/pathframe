@@ -53,7 +53,8 @@ pub enum ApplicationPrototypeSubCommands {
     FindById(FindApplicationByIdArgs),
     CreatePage(CreatePageArgs),
     CreateComponent(CreateComponentArgs),
-    ListComponent(ListComponentsArgs)
+    ListComponent(ListFramesArgs),
+    ListPages(ListFramesArgs)
 }
 
 #[derive(Debug, Parser)]
@@ -66,16 +67,6 @@ pub struct CreateApplicationArgs {
 pub struct FindApplicationByIdArgs {
     pub id: String
 }
-
-#[derive(Debug, Parser)]
-pub struct CreateModuleArgs {
-    #[arg(aliases=["app-id"])]
-    pub application_id: String,
-    
-    #[arg(aliases=["mod-name","name"])]
-    pub module_name: String,
-}
-
 #[derive(Debug, Parser)]
 pub struct CreateComponentArgs {
     #[arg(aliases=["app-id"])]
@@ -90,15 +81,12 @@ pub struct CreatePageArgs {
     #[arg(aliases=["app-id"])]
     pub application_id: String,
     
-    #[arg(aliases=["mod-id"])]
-    pub module_id: String,
-
     #[arg(aliases=["name"])]
     pub page_name: String,
 }
 
 #[derive(Debug, Parser)]
-pub struct ListComponentsArgs {
+pub struct ListFramesArgs {
     #[arg(aliases=["app-id"])]
     pub application_id: String,
 }

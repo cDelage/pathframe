@@ -1,19 +1,20 @@
+use std::fs::File;
+
 use anyhow::{anyhow, Result};
 use args::{ApplicationPrototypeSubCommands, EntityCommands, PathframeArgs};
 use clap::Parser;
 
 use colored::*;
 use pathframe_lib::{
-    application::workspace_service::{
+    application::{compiler_service::design_system_compiler::design_system_to_stylesheet, workspace_service::{
         self, application_prototype_service,
         design_system_service::{
-            design_system_to_stylesheet, find_all_design_systems, find_design_system_by_id,
+            find_all_design_systems, find_design_system_by_id,
         },
-    },
+    }},
     domain::workspace_domain::{
         application_prototype_domain::{
-            ApplicationPrototype, ApplicationPrototypeMetadata, ComponentMetadata, Module,
-            ModuleMetadata, PageMetadata,
+            ApplicationPrototype, ApplicationPrototypeMetadata, FrameMetadata,
         },
         design_system_domain::DesignSystem,
         Workspace,
@@ -85,36 +86,19 @@ fn main() -> Result<()> {
                         application.application_prototype_metadata.application_name
                     )
                 }
-                ApplicationPrototypeSubCommands::CreateModule(payload) => {
-                    let application = application_prototype_service::find_application_by_id(
-                        &workspace,
-                        &payload.application_id,
-                    )?;
-
-                    let module: ModuleMetadata = application_prototype_service::create_module(
-                        &application.application_prototype_metadata,
-                        &payload.module_name,
-                    )?;
-
-                    println!("Success to create module (Module ID : {}", module.module_id);
-                }
                 ApplicationPrototypeSubCommands::CreatePage(payload) => {
-                    let application = application_prototype_service::find_application_by_id(
-                        &workspace,
-                        &payload.application_id,
-                    )?;
+                    let application: ApplicationPrototype =
+                        application_prototype_service::find_application_by_id(
+                            &workspace,
+                            &payload.application_id,
+                        )?;
 
-                    let module: Module = application_prototype_service::find_module_by_id(
+                    let page_metadata: FrameMetadata = application_prototype_service::create_page(
                         &application.application_prototype_metadata,
-                        &payload.module_id,
-                    )?;
-
-                    let page_metadata: PageMetadata = application_prototype_service::create_page(
-                        &module.module_metadata,
                         &payload.page_name,
                     )?;
 
-                    println!("Page created (Page id : {})", page_metadata.page_id);
+                    println!("Page created (Page id : {:?})", page_metadata);
                 }
                 ApplicationPrototypeSubCommands::CreateComponent(payload) => {
                     let application: ApplicationPrototype =
@@ -123,16 +107,12 @@ fn main() -> Result<()> {
                             &payload.application_id,
                         )?;
 
-                    let component: ComponentMetadata =
-                        application_prototype_service::create_component(
-                            &application.application_prototype_metadata,
-                            &payload.component_name,
-                        )?;
+                    let component: FrameMetadata = application_prototype_service::create_component(
+                        &application.application_prototype_metadata,
+                        &payload.component_name,
+                    )?;
 
-                    println!(
-                        "Component created (Component id : {})",
-                        component.component_id
-                    );
+                    println!("Component created (Component id : {:?})", component);
                 }
                 ApplicationPrototypeSubCommands::ListComponent(payload) => {
                     let application = application_prototype_service::find_application_by_id(
@@ -140,14 +120,35 @@ fn main() -> Result<()> {
                         &payload.application_id,
                     )?;
 
-                    let components: Vec<ComponentMetadata> =
+                    let components: Vec<FrameMetadata> =
                         application_prototype_service::find_components_by_application(
                             &application.application_prototype_metadata,
                         )?;
 
                     components.iter().for_each(|component| {
-                        let component_name = &component.component_name.value().bright_white();
-                        let component_path = &component.component_path.truecolor(128, 128, 128);
+                        let component_name: &ColoredString =
+                            &component.frame_name.value().bright_white();
+                        let component_path: &ColoredString =
+                            &component.frame_path.truecolor(128, 128, 128);
+                        println!("{} - {}", component_name, component_path);
+                    });
+                }, 
+                ApplicationPrototypeSubCommands::ListPages(payload) => {
+                    let application = application_prototype_service::find_application_by_id(
+                        &workspace,
+                        &payload.application_id,
+                    )?;
+
+                    let pages: Vec<FrameMetadata> =
+                        application_prototype_service::find_pages_by_application(
+                            &application.application_prototype_metadata,
+                        )?;
+
+                    pages.iter().for_each(|component: &FrameMetadata| {
+                        let component_name: &ColoredString =
+                            &component.frame_name.value().bright_white();
+                        let component_path: &ColoredString =
+                            &component.frame_path.truecolor(128, 128, 128);
                         println!("{} - {}", component_name, component_path);
                     });
                 }
@@ -171,8 +172,10 @@ fn main() -> Result<()> {
                     println!("{}", design_system.design_system_name);
                 }
                 args::DesignSystemSubCommands::ToStylesheet(payload) => {
+                    let design_system: DesignSystem =
+                        find_design_system_by_id(&workspace, &payload.design_system_id)?;
                     let design_system: String =
-                        design_system_to_stylesheet(&workspace, &payload.design_system_id)?;
+                        design_system_to_stylesheet(&design_system)?;
                     println!("{}", design_system);
                 }
             }
